@@ -118,9 +118,20 @@ function playMovie(title, url, doPlay) {
 	if (doPlay == true) { player.play(); }
 }
 
+// 指定時間移動
+function addSeek(seconds) {
+	$("#videoPlayer").currentTime += seconds;
+}
+
 // 再生速度変更
 function changeRate(rate) {
 	$("#videoPlayer").playbackRate = rate;
+}
+
+// videoサイズ変更
+function sizeChange(rate) {
+	$("#videoPlayer").style.width  = ($("#videoPlayer").clientWidth  * rate) + "px";
+	$("#videoPlayer").style.height = ($("#videoPlayer").clientHeight * rate) + "px";
 }
 
 //全画面解除
@@ -140,9 +151,13 @@ function exitFullscreen(){
 <div class="divVideo"><video id="videoPlayer" src="" controls></video></div>
 <h1 id="lblVideoTitle">タイトル</h1>
 <div class="divButton">
+  <button onclick="addSeek(-10);">-10s</button>
+  <button onclick="addSeek(+10);">+10s</button>
   <button onclick="changeRate(1.0);">x1.0</button>
   <button onclick="changeRate(1.5);">x1.5</button>
-  <button onclick="changeRate(2.0);">x2.0</button>
+  <button onclick="changeRate(2.0);">x2.0</button>　
+  <button onclick="sizeChange(0.8);">size-</button>
+  <button onclick="sizeChange(1.2);">size+</button>
 </div>
 </div>
 
