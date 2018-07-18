@@ -1,0 +1,103 @@
+// MovieUpload.jse
+// MovieBrowserで再生するためのファイルをアップロードして、playlist.txtを書き換える。
+// 
+// ドラッグ＆ドロップしたファイルを、スクリプトがあるフォルダのplaylist.txtの
+// ファイル名に変更してコピーする。
+// その際、作成日が最も古いファイルが上書き対象になる。
+// 
+// playlistの例(utf-8):
+// タイトル1	movie1.mp4	https://www.dropbox.com/s/hogehoge12345/movie1.mp4?dl=0	2018/07/19 01:10:41
+// タイトル2	movie2.mp4	https://www.dropbox.com/s/hogehoge23456/movie2.mp4?dl=0	2018/07/19 01:12:34
+// タイトル3	movie3.mp4	https://www.dropbox.com/s/hogehoge78901/movie3.mp4?dl=0	2018/07/19 01:16:02
+
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+// ドラッグ＆ドロップしたファイルを得る
+var oWArgv  = WScript.Arguments;
+
+if (oWArgv.length == 0) {
+	WScript.Echo("ドラッグ＆ドロップしてください。");
+	WScript.Quit();
+}
+
+var copyfilePath = oWArgv.item(0);
+
+// playlist.txtを読み込み
+var playlist = [];
+
+var scriptFolder = fso.getParentFolderName(WScript.ScriptFullName);
+var playlistPath = fso.BuildPath(scriptFolder, "playlist.txt");
+var lines = readFileUtf8(playlistPath).replace(/\r/g, "").split("\n");
+for (var i=0; i<lines.length; i++) {
+	if (lines[i] == "") { continue; }
+	var items = lines[i].split("\t");
+	playlist.push({
+		title			: items[0],
+		fileName		: items[1],
+		url				: items[2],
+		updateDate		: parseDate(items[3]),
+		updateDateStr	: items[3]
+	});
+}
+
+// 作成日が一番古いものを判定
+var minDateItem = playlist[0];
+for (var i=0; i<playlist.length; i++) {
+	if (playlist[i].updateDate < minDateItem.updateDate) { minDateItem = playlist[i]; }
+}
+
+// コピー
+fso.CopyFile(copyfilePath, fso.BuildPath(scriptFolder, minDateItem.fileName));
+
+// playlist.txtを書き換え
+minDateItem.title      = fso.GetFileName(copyfilePath);
+minDateItem.updateDateStr = formatDate(new Date());
+
+var writeText = "";
+for (var i=0; i<playlist.length; i++) {
+	writeText += playlist[i].title + "\t" + playlist[i].fileName + "\t" + playlist[i].url + "\t" + playlist[i].updateDateStr + "\r\n";
+}
+writeFileUtf8(playlistPath, writeText);
+
+// utf-8で読み込み
+function readFileUtf8(path) {
+	var reader = new ActiveXObject("ADODB.Stream");
+	reader.Type = 2;				// 1：バイナリ・2：テキスト
+	reader.Charset = "UTF-8";		// 文字コード指定
+	reader.Open();					// Stream オブジェクトを開く
+	reader.LoadFromFile(path);
+	var lines = reader.ReadText();
+	reader.Close();
+
+	return lines;
+}
+
+// utf-8で書き込み
+function writeFileUtf8(path, text) {
+	var writer = new ActiveXObject("ADODB.Stream");
+	writer.Type = 2;				// 1：バイナリ・2：テキスト
+	writer.Charset = "UTF-8";		// 文字コード指定
+	writer.Open();					// Stream オブジェクトを開く
+	writer.writeText(text);
+    writer.saveToFile(path, 2);		// 2:上書き
+	writer.Close();
+}
+
+// yyyy/mm/dd hh:mm:ss からDateオブジェクトを作成
+function parseDate(dateStr) {
+	var dateParts = dateStr.split(/[ /:]+/);
+	return new Date(dateParts[0], dateParts[1]-1, dateParts[2], dateParts[3], dateParts[4], dateParts[5]);
+}
+
+// Dateをyyyy/mm/dd hh:mm:ssに書式変換
+function formatDate(date) {
+	var dateStr = "";
+	dateStr += date.getFullYear();
+	dateStr += "/" + ('0' + (date.getMonth() + 1)).slice(-2);
+	dateStr += "/" + ('0' + date.getDate()).slice(-2);
+	dateStr += " " + ('0' + date.getHours()).slice(-2);
+	dateStr += ":" + ('0' + date.getMinutes()).slice(-2);
+	dateStr += ":" + ('0' + date.getSeconds()).slice(-2);
+	return dateStr;
+}
+

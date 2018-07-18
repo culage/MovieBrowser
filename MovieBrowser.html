@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+<title>MovieBrowser</title>
+<style>
+.section {
+	margin-bottom	: 1em;
+}
+#videoPlayer {
+	height			: 200px;
+}
+#lblVideoTitle {
+	text-align		: center;
+	margin			: 0px auto 0px auto;
+	padding			: 0px auto 0px auto;
+}
+.divVideo, .divButton, #pnlPlayList {
+	text-align		: center;
+}
+.playItem {
+	width			: 60%;
+}
+</style>
+<script>
+// 追加したい機能
+// 上へ/下へ
+// 次自動再生
+
+var $ = (s) => document.querySelector(s);
+var _playlist;
+
+// 初期処理
+document.addEventListener("DOMContentLoaded", () => {
+	// 初期表示
+	var playlistUrl = localStorage.getItem("playlistUrl");
+	if (playlistUrl) {
+		$("#txtPlayListUrl").value = playlistUrl;
+		_playlist = new Playlist(playlistUrl, $("#pnlPlayList"));
+	}
+	
+	// 再生終了時に最大化解除
+	$("#videoPlayer").addEventListener("ended", () => {
+		exitFullscreen();
+	});
+	
+	// 設定ボタン
+	$("#btnSetPlayList").addEventListener("click", () => {
+		$("#txtPlayListUrl").value = convPublicDropboxUrl($("#txtPlayListUrl").value);
+		var playlistUrl = $("#txtPlayListUrl").value;
+		localStorage.setItem("playlistUrl", playlistUrl);
+		_playlist = new Playlist(playlistUrl, $("#pnlPlayList"));
+		alert("プレイリストを読み込みました。");
+	});
+});
+
+// 再生リストクラス
+class Playlist {
+	constructor(url, table) {
+		fetch(url, {redirect: 'follow', cache: 'no-cache'})
+		.then(response => response.text())
+		.then(text     => this.playlist = this.parseText(text))
+		.then(_        => this.refresh())
+		.then(_        => this.setStartItem());
+		this.table = table;
+	}
+	// CSVを配列にパース
+	parseText(text) {
+		var list = [];
+		var lines = text.replace(/\r/g, "").split("\n");
+		var num = 0;
+		lines.forEach(line => {
+			if (line == "") { return; }
+			num++;
+			var items = line.split(/\t+/);
+			list.push({
+				title			: `No.${num} ${items[0]}`,
+				fileName		: items[1],
+				url				: convPublicDropboxUrl(items[2]),
+				updateDate		: this._parseDate(items[3]),
+				updateDateStr	: items[3]
+			});
+		});
+		return list;
+	}
+	_parseDate(dateStr) {
+		var dateParts = dateStr.split(/[ /:]+/);
+		return new Date(dateParts[0], dateParts[1]-1, dateParts[2], dateParts[3], dateParts[4], dateParts[5]);
+	}
+	// 配列からDOMを設定
+	refresh() {
+		var html = "";
+		this.playlist.forEach(item => {
+			html += `<button class="playItem" onclick="playMovie('${item.title}', '${item.url}', true)">${item.title}</button> ${item.updateDateStr}<br>`;
+		});
+		this.table.innerHTML = html;
+	}
+	// 最初のアイテムを設定
+	setStartItem() {
+		var startItem = this.playlist[0];
+		this.playlist.forEach(item => {
+			if (item.updateDate > startItem.updateDate) { startItem = item; }
+		});
+		playMovie(startItem.title, startItem.url, false);
+	}
+}
+
+// dropboxのリンクURLをクロスドメインアクセスできるものに変換
+function convPublicDropboxUrl(url) {
+	return url.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace(/\?dl=0$/, "");
+}
+
+// 再生
+function playMovie(title, url, doPlay) {
+	$("#lblVideoTitle").innerText = title;
+	var player = $("#videoPlayer");
+	player.src = url;
+	player.load();
+	if (doPlay == true) { player.play(); }
+}
+
+// 再生速度変更
+function changeRate(rate) {
+	$("#videoPlayer").playbackRate = rate;
+}
+
+//全画面解除
+function exitFullscreen(){
+	if (document.exitFullScreen        ) { document.exitFullScreen();         }
+	if (document.webkitExitFullScreen  ) { document.webkitExitFullScreen();   }
+	if (document.webkitCancelFullScreen) { document.webkitCancelFullScreen(); }
+	if (document.mozCancelFullScreen   ) { document.mozCancelFullScreen();    }
+	if (document.mozExitFullScreen     ) { document.mozExitFullScreen();      }
+	if (document.msExitFullScreen      ) { document.msExitFullScreen();       }
+}
+</script>
+</head>
+<body>
+
+<div class="section">
+<div class="divVideo"><video id="videoPlayer" src="" controls></video></div>
+<h1 id="lblVideoTitle">タイトル</h1>
+<div class="divButton">
+  <button onclick="changeRate(1.0);">x1.0</button>
+  <button onclick="changeRate(1.5);">x1.5</button>
+  <button onclick="changeRate(2.0);">x2.0</button>
+</div>
+</div>
+
+<div class="section">
+<div id="pnlPlayList"></div>
+</div>
+
+<div class="section">
+play list url:<br>
+<input id="txtPlayListUrl" type="text" style="width:90%"><button id="btnSetPlayList">Setting</button>
+</div>
+
+</body>
+</html>
+
+
