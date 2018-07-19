@@ -2,10 +2,25 @@
 <html>
 <meta charset="utf-8" />
 <title>MovieBrowser</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 <style>
+body {
+	background-color: ghostwhite;
+}
 .section {
 	margin-bottom	: 1em;
 }
+.frontPaper {
+	margin-top		: 5px;
+	padding-top		: 10px;
+	padding-bottom	: 10px;
+	background-color: white;
+	width			: 100%;
+	box-shadow		: 0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.2),0 1px 5px 0 rgba(0,0,0,.12);
+}
+
 #videoPlayer {
 	height			: 200px;
 }
@@ -14,12 +29,25 @@
 	margin			: 0px auto 0px auto;
 	padding			: 0px auto 0px auto;
 }
-.divVideo, .divButton, #pnlPlayList {
+.divVideo, .divButton, #pnlPlayList, #pnlSetting {
 	text-align		: center;
 }
-.playItem {
-	width			: 60%;
+.divButton button {
+	margin-left		: 5px;
 }
+#pnlPlayList div.mdl-button {
+	width			: 60%;
+	height			: 48px;
+	margin-bottom	: 10px;
+	text-align		: left;
+	font-size		: 14pt;
+	box-shadow		: 0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.2),0 1px 5px 0 rgba(0,0,0,.12);
+}
+
+#pnlPlayList div.mdl-button:not(:hover) {
+	background-color: white;
+}
+
 </style>
 <script>
 // 追加したい機能
@@ -90,7 +118,10 @@ class Playlist {
 	refresh() {
 		var html = "";
 		this.playlist.forEach(item => {
-			html += `<button class="playItem" onclick="playMovie('${item.title}', '${item.url}', true)">${item.title}</button> ${item.updateDateStr}<br>`;
+			html += `<div class="mdl-button mdl-js-button mdl-js-ripple-effect" onclick="playMovie('${item.title}', '${item.url}', true)">
+					<span class="mdl-chip"><span class="mdl-chip__text">${item.updateDateStr}</span></span>　
+					<span style="vertical-align:-6px; text-transform:none;">${item.title}</span>
+					</div><br>`;
 		});
 		this.table.innerHTML = html;
 	}
@@ -115,6 +146,10 @@ function playMovie(title, url, doPlay) {
 	var player = $("#videoPlayer");
 	player.src = url;
 	player.load();
+
+	var rate = Number([...document.querySelectorAll("button[rate]")].filter(el => el.classList.contains("mdl-button--colored"))[0].getAttribute("rate"));
+	player.playbackRate = rate;
+
 	if (doPlay == true) { player.play(); }
 }
 
@@ -124,8 +159,11 @@ function addSeek(seconds) {
 }
 
 // 再生速度変更
-function changeRate(rate) {
+function changeRate(rate, active) {
 	$("#videoPlayer").playbackRate = rate;
+
+	[...document.querySelectorAll("button[rate]")].forEach(el => el.classList.remove("mdl-button--colored"));
+	active.classList.add("mdl-button--colored");
 }
 
 // videoサイズ変更
@@ -147,27 +185,29 @@ function exitFullscreen(){
 </head>
 <body>
 
-<div class="section">
-<div class="divVideo"><video id="videoPlayer" src="" controls></video></div>
-<h1 id="lblVideoTitle">タイトル</h1>
+<div class="section frontPaper">
+<div class="divVideo" style="margin-bottom:10px;"><video id="videoPlayer" src="" controls></video></div>
 <div class="divButton">
-  <button onclick="addSeek(-10);">-10s</button>
-  <button onclick="addSeek(+10);">+10s</button>
-  <button onclick="changeRate(1.0);">x1.0</button>
-  <button onclick="changeRate(1.5);">x1.5</button>
-  <button onclick="changeRate(2.0);">x2.0</button>　
-  <button onclick="sizeChange(0.8);">size-</button>
-  <button onclick="sizeChange(1.2);">size+</button>
+  <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect                    " onclick="addSeek(-10);"><i class="material-icons">replay_10</i></button>　
+  <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored" onclick="changeRate(1.0,this);" rate="1.0">x1.0</button>
+  <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect                    " onclick="changeRate(1.5,this);" rate="1.5">x1.5</button>
+  <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect                    " onclick="changeRate(2.0,this);" rate="2.0">x2.0</button>　
+  <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab                       " onclick="sizeChange(0.8);"><i class="material-icons">zoom_out</i></button>
+  <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab                       " onclick="sizeChange(1.2);"><i class="material-icons">zoom_in</i></button>
 </div>
+<h1 id="lblVideoTitle">タイトル</h1>
 </div>
 
 <div class="section">
 <div id="pnlPlayList"></div>
 </div>
 
-<div class="section">
-play list url:<br>
-<input id="txtPlayListUrl" type="text" style="width:90%"><button id="btnSetPlayList">Setting</button>
+<div class="section frontPaper" id="pnlSetting">
+<div class="mdl-textfield mdl-js-textfield" style="width:60%">
+  <input class="mdl-textfield__input" type="text" id="txtPlayListUrl">
+  <label class="mdl-textfield__label" for="txtPlayListUrl">Input "playlist.txt" link url ...</label>
+</div>
+　<button id="btnSetPlayList" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect"><i class="material-icons">save</i></button>
 </div>
 
 </body>
